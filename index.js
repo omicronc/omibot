@@ -4,7 +4,13 @@ const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerSta
 const ytdl = require('ytdl-core');
 const { google } = require('googleapis');
 
-// Create a new Discord client with specified intents
+// Configure the YouTube API client
+const youtube = google.youtube({
+    version: 'v3',
+    auth: 'Your_YouTube_API_Key'
+});
+
+// Initialize the Discord client with necessary intents
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -14,99 +20,138 @@ const client = new Client({
     ]
 });
 
-// Configure the YouTube API client
-const youtube = google.youtube({
-    version: 'v3',
-    auth: 'Your_YouTube_API_Key'
-});
-
 // Create an audio player
-let player = createAudioPlayer();
+const player = createAudioPlayer();
 
-// Event listener for when the bot is ready
-client.on('ready', () => {
-    console.log(`Bot connected as ${client.user.tag}`);
-});
+// Define the playlist queue
+let queue = {
+    videos: [],
+    current: 0,
+    connection: null,
 
-// Event listener for new messages
-client.on('messageCreate', async message => {
-    if (message.author.bot || !message.guild) return;  // Ignore messages from bots or outside of guilds
+    playCurrentIndex: function(message) {
+        if (this.current < this.videos.length && this.current >= 0) {
+            const videoId = this.videos[this.current];
+            playVideo(videoId, message);
+        } else {
+            message.channel.send("You've reached the end of the playlist.");
+        }
+    },
 
-    // Handle the '!play' command
-    if (message.content.startsWith('!play ')) {
-        const args = message.content.split(' ').slice(1);
-        if (args.length < 2) {
-            message.reply('Please specify the artist and title.');
+    addVideos: function(videoIds) {
+        this.videos = this.videos.concat(videoIds);
+    },
+
+    clear: function() {
+        this.videos = [];
+        this.current = 0;
+        if (this.connection) {
+            this.connection.destroy();
+            this.connection = null;
+        }
+    }
+};
+
+// Function to play a video
+async function playVideo(videoId, message) {
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    const stream = ytdl(url, { filter: 'audioonly' });
+    const resource = createAudioResource(stream);
+
+    if (!this.connection) {
+        if (message.member.voice.channel) {
+            this.connection = joinVoiceChannel({
+                channelId: message.member.voice.channel.id,
+                guildId: message.guild.id,
+                adapterCreator: message.guild.voiceAdapterCreator,
+            });
+            this.connection.subscribe(player);
+        } else {
+            message.channel.send("You need to be in a voice channel to play music.");
             return;
         }
-
-        const query = args.join(' ');
-        try {
-            // Search for a video on YouTube
-            const response = await youtube.search.list({
-                part: 'snippet',
-                type: 'video',
-                q: query,
-                maxResults: 1
-            });
-
-            // Handle no search results
-            if (response.data.items.length === 0) {
-                message.reply('No song found.');
-                return;
-            }
-
-            // Get video details and prepare to play
-            const video = response.data.items[0];
-            const { videoId } = video.id;
-            const url = `https://www.youtube.com/watch?v=${videoId}`;
-            const title = video.snippet.title;
-            message.reply(`Now playing: ${title}\nLink: ${url}`);
-
-            const channel = message.member.voice.channel;
-            if (!channel) {
-                message.reply('You need to be in a voice channel.');
-                return;
-            }
-
-            // Join the voice channel and play the audio
-            const connection = joinVoiceChannel({
-                channelId: channel.id,
-                guildId: channel.guild.id,
-                adapterCreator: channel.guild.voiceAdapterCreator,
-            });
-            
-            // Set up stream with quality options
-            const streamOptions = { 
-                filter: 'audioonly', 
-                quality: 'highestaudio', 
-                highWaterMark: 1 << 28 
-            };
-            const stream = ytdl(url, streamOptions);
-            const resource = createAudioResource(stream);
-            player.play(resource);
-            connection.subscribe(player);
-
-            // Destroy the connection when the audio ends
-            player.on(AudioPlayerStatus.Idle, () => connection.destroy());
-        } catch (error) {
-            console.error('Error during YouTube search:', error);
-            message.reply('Error while searching for the song.');
-        }
     }
 
-    // Handle the '!stop' command
-    if (message.content === '!stop') {
-        const connection = getVoiceConnection(message.guild.id);
-        if (connection) {
-            player.stop();
-            connection.destroy();
-            message.reply('Music stopped.');
-        } else {
-            message.reply('The bot is not in a voice channel.');
-        }
+    player.play(resource);
+    message.channel.send(`Now playing: ${url}`);
+
+    player.on(AudioPlayerStatus.Idle, () => {
+        queue.current++;
+        queue.playCurrentIndex(message);
+    });
+}
+
+// Function to play a playlist
+async function playPlaylist(playlistId, message) {
+    const response = await youtube.playlistItems.list({
+        part: 'snippet',
+        playlistId: playlistId,
+        maxResults: 50
+    });
+
+    const videoIds = response.data.items.map(item => item.snippet.resourceId.videoId);
+    queue.addVideos(videoIds);
+    queue.playCurrentIndex(message);
+}
+
+// Event listener for commands
+client.on('messageCreate', async message => {
+    if (message.author.bot || !message.guild) return;
+
+    switch (message.content.split(' ')[0]) {
+        case '!play':
+            const content = message.content.slice(6);
+            if (content.includes('playlist?list=')) {
+                const playlistId = content.split('list=')[1];
+                playPlaylist(playlistId, message);
+            } else {
+                handleVideoSearch(content, message);
+            }
+            break;
+        case '!next':
+            queue.current++;
+            queue.playCurrentIndex(message);
+            break;
+        case '!back':
+            if (queue.current > 0) {
+                queue.current--;
+                queue.playCurrentIndex(message);
+            } else {
+                message.channel.send("Already at the start of the playlist.");
+            }
+            break;
+            case '!stop':
+                try {
+                    if (queue.connection) {
+                        queue.connection.disconnect();
+                        queue.connection = null;
+                    }
+                    player.stop();
+                    queue.clear();
+                    message.channel.send("Playback stopped and playlist cleared.");
+                } catch (error) {
+                    console.error("Failed to execute stop command:", error);
+                    message.channel.send("Error stopping the playback.");
+                }
+                break;
     }
 });
+
+// Handle video search
+async function handleVideoSearch(query, message) {
+    const searchResponse = await youtube.search.list({
+        part: 'snippet',
+        q: query,
+        maxResults: 1,
+        type: 'video'
+    });
+    if (searchResponse.data.items.length > 0) {
+        const videoId = searchResponse.data.items[0].id.videoId;
+        playVideo(videoId, message);
+    } else {
+        message.channel.send("No video found.");
+    }
+}
 
 // Log the bot in using the Discord bot token
 client.login('Your_Discord_Bot_Token');
