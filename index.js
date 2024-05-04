@@ -7,7 +7,7 @@ const { google } = require('googleapis');
 // Configure the YouTube API client
 const youtube = google.youtube({
     version: 'v3',
-    auth: 'Your_YouTube_API_Key'
+    auth: 'YOUR_GOOGLE_API_KEY' // Change to your actual API key
 });
 
 // Initialize the Discord client with necessary intents
@@ -58,14 +58,14 @@ async function playVideo(videoId, message) {
     const stream = ytdl(url, { filter: 'audioonly' });
     const resource = createAudioResource(stream);
 
-    if (!this.connection) {
+    if (!queue.connection) {
         if (message.member.voice.channel) {
-            this.connection = joinVoiceChannel({
+            queue.connection = joinVoiceChannel({
                 channelId: message.member.voice.channel.id,
                 guildId: message.guild.id,
                 adapterCreator: message.guild.voiceAdapterCreator,
             });
-            this.connection.subscribe(player);
+            queue.connection.subscribe(player);
         } else {
             message.channel.send("You need to be in a voice channel to play music.");
             return;
@@ -98,9 +98,12 @@ async function playPlaylist(playlistId, message) {
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
 
-    switch (message.content.split(' ')[0]) {
+    const args = message.content.split(' ');
+    const command = args.shift().toLowerCase();
+
+    switch (command) {
         case '!play':
-            const content = message.content.slice(6);
+            const content = args.join(' ');
             if (content.includes('playlist?list=')) {
                 const playlistId = content.split('list=')[1];
                 playPlaylist(playlistId, message);
@@ -120,20 +123,20 @@ client.on('messageCreate', async message => {
                 message.channel.send("Already at the start of the playlist.");
             }
             break;
-            case '!stop':
-                try {
-                    if (queue.connection) {
-                        queue.connection.disconnect();
-                        queue.connection = null;
-                    }
-                    player.stop();
-                    queue.clear();
-                    message.channel.send("Playback stopped and playlist cleared.");
-                } catch (error) {
-                    console.error("Failed to execute stop command:", error);
-                    message.channel.send("Error stopping the playback.");
+        case '!stop':
+            try {
+                if (queue.connection) {
+                    queue.connection.disconnect();
+                    queue.connection = null;
                 }
-                break;
+                player.stop();
+                queue.clear();
+                message.channel.send("Playback stopped and playlist cleared.");
+            } catch (error) {
+                console.error("Failed to execute stop command:", error);
+                message.channel.send("Error stopping the playback.");
+            }
+            break;
     }
 });
 
@@ -154,4 +157,4 @@ async function handleVideoSearch(query, message) {
 }
 
 // Log the bot in using the Discord bot token
-client.login('Your_Discord_Bot_Token');
+client.login('YOUR_DISCORD_BOT_TOKEN'); // Change to your actual bot token
