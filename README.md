@@ -1,31 +1,72 @@
-# omibot
+Discord Music Bot
 
-## Name
-OmiBot Discord Tunes Streamer.
+This Discord bot is designed to enhance your Discord server by providing rich music playback capabilities. It allows users to play music from YouTube directly into voice channels. Additionally, the bot supports playlist management, allowing users to play entire YouTube playlists, as well as navigate through tracks with simple commands.
+Features
 
-## Description
-This Node.js script powers a Discord bot designed to stream music within Discord voice channels. It listens for user commands to play or stop music. When a user sends a !play command followed by an artist's name and song title, the bot uses the YouTube Data API to find and stream the requested song into a Discord voice channel. The !stop command halts the music and disconnects the bot from the channel. The script utilizes the discord.js library for Discord interaction, @discordjs/voice for managing voice connections, and ytdl-core for fetching audio streams from YouTube. It ensures smooth playback with quality control settings and handles errors effectively for a seamless user experience.
+    Play Music: Play any song or playlist from YouTube by providing a direct link or search query.
+    Playlist Support: Load an entire YouTube playlist and control playback with playlist management commands.
+    Navigation Commands: Users can skip to the next song or go back to the previous song in the playlist.
+    Immediate Stop: Stop music playback immediately and clear the current playlist.
+    Voice Channel Management: Automatically joins and leaves voice channels based on user commands.
 
-## Installation
-To run this Discord music bot script, you need Node.js installed with npm. Key Node.js libraries required are discord.js for Discord API interactions, @discordjs/voice for voice connections, ytdl-core for streaming from YouTube, and googleapis for YouTube data access. Obtain a Discord bot token from the Discord Developer Portal and a YouTube Data API key from the Google Cloud Console. Ensure your bot has permissions for GUILDS, GUILD_MESSAGES, GUILD_VOICE_STATES, and MESSAGE_CONTENT. A stable internet connection and adequate computational resources are also necessary for smooth operation.
+Commands
 
-## Usage
-This script is used to operate a Discord music bot that can play songs from YouTube within a Discord server's voice channels. To use it, first ensure the script is running on a server or hosting environment with Node.js. Once active, the bot listens for specific commands in the text channels of your Discord server.
+    !play <URL or search term>: Plays the YouTube video or adds it to the current queue. If a playlist URL is provided, it loads the entire playlist.
+    !next: Skips to the next song in the playlist.
+    !back: Returns to the previous song in the playlist.
+    !stop: Stops the music and clears the playlist, and the bot leaves the voice channel.
 
-To play a song, a user types !play followed by the artist's name and song title in any text channel where the bot has access. The bot then searches YouTube for the requested song using the YouTube Data API and starts streaming the audio into the voice channel where the user is currently present.
+Setup
+Prerequisites
 
-If a user wants to stop the music, typing !stop in the text channel will make the bot cease playing the current song and leave the voice channel. The bot handles these commands in real-time, providing an interactive music experience within your Discord server.
+    Node.js v16.x or newer
+    A Discord bot token (How to get a Discord Bot Token)
+    A YouTube Data API v3 key (How to get a YouTube API Key)
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+Installation
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+    Clone the repository:
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+    bash
 
-## Authors and acknowledgment
-omicronc with help from ChatGPT.
+git clone https://github.com/yourusername/your-repository-name.git
+cd your-repository-name
 
-## License
-open source projects.
+Install the dependencies:
 
+bash
+
+npm install
+
+Configure your bot token and YouTube API key:
+
+    Create a .env file in the root directory of your project.
+    Add the following lines to it:
+
+    makefile
+
+    DISCORD_BOT_TOKEN=your_discord_bot_token
+    YOUTUBE_API_KEY=your_youtube_api_key
+
+Start the bot:
+
+bash
+
+    node index.js
+
+Adding the Bot to Your Server
+
+Ensure your bot has permissions for reading messages, sending messages, connecting to voice channels, and speaking in them. Use the Discord developer portal to generate an invite link with the appropriate scopes and permissions.
+Contributing
+
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
+
+    Fork the Project
+    Create your Feature Branch (git checkout -b feature/AmazingFeature)
+    Commit your Changes (git commit -m 'Add some AmazingFeature')
+    Push to the Branch (git push origin feature/AmazingFeature)
+    Open a Pull Request
+
+License
+
+Distributed under the MIT License. See LICENSE for more information.
