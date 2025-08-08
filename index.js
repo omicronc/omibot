@@ -1,4 +1,5 @@
 // Import necessary modules
+require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, getVoiceConnection } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
@@ -7,7 +8,7 @@ const { google } = require('googleapis');
 // Configure the YouTube API client
 const youtube = google.youtube({
     version: 'v3',
-    auth: 'YOUR_GOOGLE_API_KEY' // Change to your actual API key
+    auth: process.env.YOUTUBE_API_KEY // Change to your actual API key
 });
 
 // Initialize the Discord client with necessary intents
@@ -157,4 +158,4 @@ async function handleVideoSearch(query, message) {
 }
 
 // Log the bot in using the Discord bot token
-client.login('YOUR_DISCORD_BOT_TOKEN'); // Change to your actual bot token
+client.login(process.env.DISCORD_BOT_TOKEN); // Change to your actual bot token
